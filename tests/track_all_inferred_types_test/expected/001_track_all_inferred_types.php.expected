@@ -1,0 +1,14 @@
+src/001_track_all_inferred_types.php:54 PhanDebugAnnotation @phan-debug-var requested for variable $a - it has union type \Animal5920|\Cat5920|\Dog5920
+src/001_track_all_inferred_types.php:54 PhanUnusedVariable Unused definition of variable $a
+src/001_track_all_inferred_types.php:58 PhanDebugAnnotation @phan-debug-var requested for variable $b - it has union type \Animal5920|\Cat5920(real=\Animal5920|\Cat5920)
+src/001_track_all_inferred_types.php:58 PhanUnusedVariable Unused definition of variable $b
+src/001_track_all_inferred_types.php:62 PhanDebugAnnotation @phan-debug-var requested for variable $c - it has union type int(real=int)
+src/001_track_all_inferred_types.php:62 PhanUnusedVariable Unused definition of variable $c
+src/001_track_all_inferred_types.php:90 PhanDebugAnnotation @phan-debug-var requested for variable $val - it has union type 1|\C5920|mixed
+src/001_track_all_inferred_types.php:90 PhanUnusedVariable Unused definition of variable $val
+src/001_track_all_inferred_types.php:100 PhanDebugAnnotation @phan-debug-var requested for variable $d - it has union type \Cat5920|\Vegetable5920
+src/001_track_all_inferred_types.php:100 PhanUnusedVariable Unused definition of variable $d
+src/001_track_all_inferred_types.php:104 PhanDebugAnnotation @phan-debug-var requested for variable $e - it has union type \Animal5920|\Cat5920|\Vegetable5920(real=\Animal5920)
+src/001_track_all_inferred_types.php:104 PhanUnusedVariable Unused definition of variable $e
+src/001_track_all_inferred_types.php:108 PhanDebugAnnotation @phan-debug-var requested for variable $f - it has union type int(real=int)
+src/001_track_all_inferred_types.php:108 PhanUnusedVariable Unused definition of variable $f

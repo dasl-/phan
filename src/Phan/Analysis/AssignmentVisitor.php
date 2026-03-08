@@ -1374,11 +1374,20 @@ class AssignmentVisitor extends AnalysisVisitor
                     // echo "Emitting warning for {$resolved_right_type->asExpandedTypes($code_base)} to {$property_union_type->asExpandedTypes($code_base)}\n";
                     $this->emitTypeMismatchPropertyIssue($node, $property, $resolved_right_type, $this->right_type->withUnionType($resolved_right_type), $property_union_type);
                 }
-                return $this->context;
-            }
-
-            if (Config::get_strict_property_checking() && $this->right_type->typeCount() > 1) {
-                $this->analyzePropertyAssignmentStrict($property, $this->right_type, $node);
+                if (!Config::getValue('track_all_inferred_types')) {
+                    return $this->context;
+                }
+                // Still accumulate if compatible with the real PHP type.
+                $real_property_type = $property->getRealUnionType();
+                if (!$real_property_type->isEmpty()
+                    && !$resolved_right_type->canCastToDeclaredType($code_base, $this->context, $real_property_type)
+                ) {
+                    return $this->context;
+                }
+            } else {
+                if (Config::get_strict_property_checking() && $this->right_type->typeCount() > 1) {
+                    $this->analyzePropertyAssignmentStrict($property, $this->right_type, $node);
+                }
             }
         }
 
@@ -2082,6 +2091,8 @@ class AssignmentVisitor extends AnalysisVisitor
         $has_literals = $original_property_types->hasLiterals();
         $new_types = $new_types->withStaticResolvedInContext($context)->withFlattenedArrayShapeTypeInstances();
 
+        $track_all = Config::getValue('track_all_inferred_types');
+        $real_property_type = $track_all ? $property->getRealUnionType() : null;
         $updated_property_types = $original_property_types;
         foreach ($new_types->getTypeSet() as $new_type) {
             if ($new_type instanceof MixedType) {
@@ -2091,9 +2102,17 @@ class AssignmentVisitor extends AnalysisVisitor
 
             // Only allow compatible types to be added to declared properties.
             // Allow anything to be added to dynamic properties.
-            // TODO: Be more permissive about declared properties without phpdoc types.
-            if (!$new_type->asPHPDocUnionType()->canCastToUnionType($original_property_types, $code_base) && !$property->isDynamicProperty()) {
-                continue;
+            if (!$property->isDynamicProperty()) {
+                if ($track_all) {
+                    // Only filter against the real PHP type, not phpdoc which may be imprecise.
+                    if (!$real_property_type->isEmpty()
+                        && !$new_type->asPHPDocUnionType()->canCastToDeclaredType($code_base, $context, $real_property_type)
+                    ) {
+                        continue;
+                    }
+                } elseif (!$new_type->asPHPDocUnionType()->canCastToUnionType($original_property_types, $code_base)) {
+                    continue;
+                }
             }
 
             // Check for adding a specific array to as generic array as a workaround for #1783
@@ -2147,6 +2166,8 @@ class AssignmentVisitor extends AnalysisVisitor
         $has_literals = $original_property_types->hasLiterals();
         $new_types = $new_types->withStaticResolvedInContext($this->context)->withFlattenedArrayShapeTypeInstances();
 
+        $track_all = Config::getValue('track_all_inferred_types');
+        $real_property_type = $track_all ? $property->getRealUnionType() : null;
         $updated_property_types = $original_property_types;
 
         // For interface-typed properties, don't accumulate inferred types.
@@ -2180,9 +2201,17 @@ class AssignmentVisitor extends AnalysisVisitor
 
             // Only allow compatible types to be added to declared properties.
             // Allow anything to be added to dynamic properties.
-            // TODO: Be more permissive about declared properties without phpdoc types.
-            if (!$new_type->asPHPDocUnionType()->canCastToUnionType($original_property_types, $this->code_base) && !$property->isDynamicProperty()) {
-                continue;
+            if (!$property->isDynamicProperty()) {
+                if ($track_all) {
+                    // Only filter against the real PHP type, not phpdoc which may be imprecise.
+                    if (!$real_property_type->isEmpty()
+                        && !$new_type->asPHPDocUnionType()->canCastToDeclaredType($this->code_base, $this->context, $real_property_type)
+                    ) {
+                        continue;
+                    }
+                } elseif (!$new_type->asPHPDocUnionType()->canCastToUnionType($original_property_types, $this->code_base)) {
+                    continue;
+                }
             }
 
             // Check for adding a specific array to as generic array as a workaround for #1783

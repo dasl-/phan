@@ -1721,6 +1721,7 @@ class PostOrderAnalysisVisitor extends AnalysisVisitor
         $method = $context->getFunctionLikeInScope($code_base);
 
         $override_return_types = Config::getValue('override_return_types');
+        $track_all_inferred_types = Config::getValue('track_all_inferred_types');
         $allow_overriding_vague_return_types = Config::getValue('allow_overriding_vague_return_types');
 
         // Mark the method as returning something (even if void)
@@ -1789,11 +1790,30 @@ class PostOrderAnalysisVisitor extends AnalysisVisitor
             // For functions that aren't syntactically Generators,
             // update the set/existence of return values.
             //
-            // If `override_return_types` is enabled, update the return value even if it doesn't
-            // match the method's declared return value. One reason for this approach is because
-            // phpdoc return values may be incorrect or out of date, and phan errors about the
-            // incorrect phpdoc  return values may be suppressed.
-            if ($method->isReturnTypeModifiable() && (!$is_mismatch || $override_return_types)) {
+            // If `override_return_types` or `track_all_inferred_types` is enabled, update the
+            // return value even if it doesn't match the method's declared return value. One reason
+            // for this approach is because phpdoc return values may be incorrect or out of date,
+            // and phan errors about the incorrect phpdoc return values may be suppressed.
+            if ($method->isReturnTypeModifiable() && (!$is_mismatch || $override_return_types || $track_all_inferred_types)) {
+                $types_to_add = $expression_type;
+                // Filter out types incompatible with the real PHP return type.
+                if ($track_all_inferred_types && $is_mismatch) {
+                    $real_return_type = $method->getRealReturnType();
+                    if (!$real_return_type->isEmpty()) {
+                        $types_to_add = $types_to_add->makeFromFilter(
+                            static function (Type $type) use ($real_return_type, $code_base, $context): bool {
+                                return $type->asPHPDocUnionType()->canCastToDeclaredType(
+                                    $code_base,
+                                    $context,
+                                    $real_return_type
+                                );
+                            }
+                        );
+                        if ($types_to_add->isEmpty()) {
+                            continue;
+                        }
+                    }
+                }
                 // Add the new type to the set of values returned by the
                 // method
                 $union_type = $method->getUnionType();
@@ -1802,7 +1822,7 @@ class PostOrderAnalysisVisitor extends AnalysisVisitor
                         return \get_class($type) !== MixedType::class;
                     });
                 }
-                $method->setUnionType($union_type->withUnionType($expression_type));
+                $method->setUnionType($union_type->withUnionType($types_to_add));
             }
         }
 

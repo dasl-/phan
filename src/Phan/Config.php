@@ -352,6 +352,13 @@ class Config
         // this setting was added for more details.
         'override_return_types' => false,
 
+        // When enabled, accumulate all inferred concrete types alongside declared types for functions and properties.
+        // Unlike `override_return_types`, inferred types are validated against real PHP type signatures (runtime-enforced)
+        // to prevent accumulating types that would cause TypeErrors. Phpdoc annotations are not used as a filter.
+        // This is useful with `--analyze-twice` and in conjunction with `PhoundPlugin` to detect more callsite
+        // possibilities. Subsumes `override_return_types`.
+        'track_all_inferred_types' => false,
+
         // When enabled, infer that the types of the properties of `$this` are equal to their default values at the start of `__construct()`.
         // This will have some false positives due to Phan not checking for setters and initializing helpers.
         // This does not affect inherited properties.
@@ -1828,6 +1835,7 @@ class Config
             'suggestion_check_limit' => $is_int_strict,
             'suppress_issue_types' => $is_string_list,
             'target_php_version' => $is_scalar,
+            'track_all_inferred_types' => $is_bool,
             'unused_variable_detection' => $is_bool,
             'redundant_condition_detection' => $is_bool,
             'assume_real_types_for_internal_functions' => $is_bool,
